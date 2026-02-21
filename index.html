@@ -1,159 +1,1041 @@
-Perfect! I've created a **standalone HTML/JavaScript version** of the entire predictive model system. Here's what you got:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counterinsurgency Predictive Model System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: #f5f5f5;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .tab.active {
+            background: #1e3c72;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1e3c72;
+        }
+        
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #1e3c72;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result-box {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            border-left: 5px solid #1e3c72;
+        }
+        
+        .result-box h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+        
+        .result-item {
+            margin: 10px 0;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .result-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        .danger {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #1e3c72;
+            color: white;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #2196F3;
+        }
+    </style>
+</head>
 
-## **📱 Interactive Web Application**
+  <body>
+    <div class="container">
+        <h1>Counterinsurgency Predictive Model System</h1>
+        <p class="subtitle">Data-Driven Decision Support | Based on 2008 Sadr City Conflict</p>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('recommendation')">Strategic Recommendation</button>
+            <button class="tab" onclick="showTab('response')">Response Prediction</button>
+            <button class="tab" onclick="showTab('comparison')">Strategy Comparison</button>
+            <button class="tab" onclick="showTab('simulation')">Monte Carlo Simulation</button>
+            <button class="tab" onclick="showTab('transition')">State Transitions</button>
+        </div>
+        
+        <!-- Tab 1: Strategic Recommendation -->
+        <div id="recommendation" class="tab-content active">
+            <div class="info-box">
+                <strong>Strategic Recommendation:</strong> Get optimal Coalition action recommendation based on observed Sadrist state.
+            </div>
+            
+            <div class="input-group">
+                <label>Observed Sadrist State:</label>
+                <select id="sadrist-state-rec">
+                    <option value="S+Id+Pos">S+Id+Pos (Structural + Ideational + Offensive)</option>
+                    <option value="S+Id+In">S+Id+In (Structural + Ideational + Institutional)</option>
+                    <option value="S+Id+P+Pos">S+Id+P+Pos (Structural + Ideational + Psychological + Offensive)</option>
+                    <option value="S+Id+In+Pos">S+Id+In+Pos (Structural + Ideational + Institutional + Offensive)</option>
+                    <option value="S+Id+In+P+Pos">S+Id+In+P+Pos (All logics + Offensive)</option>
+                    <option value="Id+In">Id+In (Ideational + Institutional)</option>
+                    <option value="In">In (Institutional only)</option>
+                    <option value="P+Pos">P+Pos (Psychological + Offensive)</option>
+                </select>
+            </div>
+            
+            <button onclick="getRecommendation()">Get Recommendation</button>
+            
+            <div id="rec-result" class="result-box" style="display: none;"></div>
+        </div>
+        
+        <!-- Tab 2: Response Prediction -->
+        <div id="response" class="tab-content">
+            <div class="info-box">
+                <strong>Response Prediction:</strong> Predict how Sadrists will respond to Coalition actions.
+            </div>
+            
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Coalition Current Action:</label>
+                    <select id="coalition-current">
+                        <option value="S+In">S+In (Structural + Institutional)</option>
+                        <option value="S+Pos">S+Pos (Structural + Offensive)</option>
+                        <option value="S">S (Structural only)</option>
+                        <option value="In">In (Institutional only)</option>
+                        <option value="None">None (Restraint)</option>
+                        <option value="S+Id+In">S+Id+In (Structural + Ideational + Institutional)</option>
+                        <option value="S+Id+Pos">S+Id+Pos (Structural + Ideational + Offensive)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Coalition Previous Action:</label>
+                    <select id="coalition-prev">
+                        <option value="S+In">S+In (Structural + Institutional)</option>
+                        <option value="S+Pos">S+Pos (Structural + Offensive)</option>
+                        <option value="S">S (Structural only)</option>
+                        <option value="In">In (Institutional only)</option>
+                        <option value="None">None (Restraint)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>Day of Conflict (1-92):</label>
+                <input type="number" id="day-conflict" min="1" max="92" value="30">
+            </div>
+            
+            <button onclick="predictResponse()">Predict Sadrist Response</button>
+            
+            <div id="response-result" class="result-box" style="display: none;"></div>
+        </div>
+        
+        <!-- Tab 3: Strategy Comparison -->
+        <div id="comparison" class="tab-content">
+            <div class="info-box">
+                <strong>Strategy Comparison:</strong> Compare different Coalition strategies over a time period.
+            </div>
+            
+            <div class="input-group">
+                <label>Current Sadrist State:</label>
+                <select id="sadrist-state-comp">
+                    <option value="S+Id+Pos">S+Id+Pos (Most Common - 70% of conflict)</option>
+                    <option value="S+Id+In">S+Id+In (De-escalated state)</option>
+                    <option value="S+Id+P+Pos">S+Id+P+Pos (Psychological escalation)</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label>Projection Period (Days):</label>
+                <input type="number" id="projection-days" min="1" max="90" value="30">
+            </div>
+            
+            <button onclick="compareStrategies()">Compare All Strategies</button>
+            
+            <div id="comparison-result" class="result-box" style="display: none;"></div>
+        </div>
 
-### **Features:**
+      <!-- Tab 4: Monte Carlo Simulation -->
+        <div id="simulation" class="tab-content">
+            <div class="info-box">
+                <strong>Monte Carlo Simulation:</strong> Run probabilistic projection with uncertainty quantification.
+            </div>
+            
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Initial Coalition Strategy:</label>
+                    <select id="sim-coalition">
+                        <option value="S+In">S+In (Structural + Institutional)</option>
+                        <option value="S+Pos">S+Pos (Structural + Offensive)</option>
+                        <option value="In">In (Institutional only)</option>
+                        <option value="None">None (Restraint)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Initial Sadrist State:</label>
+                    <select id="sim-sadrist">
+                        <option value="S+Id+Pos">S+Id+Pos (Most likely)</option>
+                        <option value="S+Id+In">S+Id+In (De-escalated)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Simulation Days:</label>
+                    <input type="number" id="sim-days" min="1" max="90" value="30">
+                </div>
+                
+                <div class="input-group">
+                    <label>Number of Simulations:</label>
+                    <select id="sim-runs">
+                        <option value="100">100 (Fast)</option>
+                        <option value="1000" selected>1000 (Recommended)</option>
+                        <option value="5000">5000 (High Accuracy)</option>
+                        <option value="10000">10000 (Maximum)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="runSimulation()">Run Monte Carlo Simulation</button>
+            
+            <div id="simulation-result" class="result-box" style="display: none;"></div>
+            <div id="chart-container" class="chart-container" style="display: none;">
+                <canvas id="simulationChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Tab 5: State Transitions -->
+        <div id="transition" class="tab-content">
+            <div class="info-box">
+                <strong>State Transitions:</strong> View Markov chain transition probabilities.
+            </div>
+            
+            <div class="input-group">
+                <label>Actor:</label>
+                <select id="actor-select" onchange="showTransitions()">
+                    <option value="Coalition">Coalition</option>
+                    <option value="Sadrist">Sadrist</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label>Current State:</label>
+                <select id="state-select" onchange="showTransitions()">
+                </select>
+            </div>
+            
+            <div id="transition-result" class="result-box" style="display: none;"></div>
+        </div>
+    </div>
 
-✅ **100% Client-Side** - No server needed, runs entirely in your browser  
-✅ **All 5 Models Integrated** - Strategic recommendation, response prediction, strategy comparison, Monte Carlo simulation, state transitions  
-✅ **Interactive UI** - Easy-to-use tabs and forms  
-✅ **Real-time Calculations** - Instant results as you input data  
-✅ **Visual Charts** - Monte Carlo simulation includes histogram using Chart.js  
-✅ **Mobile Responsive** - Works on desktop, tablet, and mobile  
-✅ **Professional Design** - Clean, modern interface with color-coded results  
+    <script>
+        // ============================================================
+        // DATA: Historical Casualty Rates
+        // ============================================================
+        const CASUALTY_RATES = {
+            'None': 0.12,
+            'S': 1.60,
+            'Id': 4.67,
+            'In': 0.10,
+            'P': 0.13,
+            'Pos': 7.86,
+            'S+Id': 2.75,
+            'S+In': 3.33,
+            'S+Pos': 7.86,
+            'Id+In': 0.00,
+            'S+Id+In': 0.00,
+            'S+Id+Pos': 20.33,
+            'S+In+Pos': 8.90,
+            'S+Id+In+Pos': 5.00,
+            'S+Id+In+P+Pos': 16.00,
+            'S+In+P+Pos': 5.67
+        };
+        
+        // ============================================================
+        // DATA: Markov Chain Transition Matrices
+        // ============================================================
+        const COALITION_TRANSITIONS = {
+            'In': {'In': 0.60, 'Id+In': 0.20, 'S': 0.20},
+            'S+In': {'S+In': 0.643, 'In': 0.143, 'S': 0.071, 'S+Pos': 0.071, 'Id': 0.071},
+            'S': {'S': 0.40, 'S+In': 0.20, 'S+Pos': 0.20, 'In': 0.20},
+            'S+Pos': {'S+Id': 0.333, 'S+Pos': 0.222, 'S': 0.222, 'In': 0.111, 'S+In': 0.111},
+            'Id': {'In': 0.50, 'S': 0.25, 'Id+In': 0.25},
+            'Id+In': {'In': 0.50, 'Id+In': 0.50},
+            'S+Id': {'S+Pos': 0.33, 'In': 0.33, 'S': 0.33},
+            'S+Id+In': {'S+Id+In': 0.50, 'S+In': 0.50}
+        };
+        
+        const SADRIST_TRANSITIONS = {
+            'S+Id+Pos': {'S+Id+Pos': 0.844, 'S+Id+P+Pos': 0.063, 'S+Id+In+Pos': 0.031, 'S+Id+In': 0.031, 'P+Pos': 0.016, 'S+Id+In+P+Pos': 0.016},
+            'S+Id+In': {'S+Id+In': 0.727, 'S+Id+In+P': 0.091, 'Id+In': 0.091, 'In': 0.091},
+            'S+Id+P+Pos': {'S+Id+Pos': 0.833, 'S+Id+In+P+Pos': 0.167},
+            'S+Id+In+Pos': {'S+Id+Pos': 0.50, 'S+Id+In': 0.25, 'S+Id+In+Pos': 0.25},
+            'P+Pos': {'S+Id+In+Pos': 1.0},
+            'S+Id+In+P+Pos': {'S+Id+Pos': 0.50, 'S+Id+In': 0.50},
+            'Id+In': {'Id+In': 0.50, 'In': 0.50},
+            'In': {'S+Id+In': 0.50, 'Id+In': 0.50}
+        };
+        
+        // ============================================================
+        // FUNCTIONS: Tab Management
+        // ============================================================
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // Special initialization for transition tab
+            if (tabName === 'transition') {
+                initTransitionTab();
+            }
+        }
+        
+        // ============================================================
+        // FUNCTIONS: Casualty Prediction
+        // ============================================================
+        function predictCasualties(coalitionState, sadristState = null) {
+            let casualties = CASUALTY_RATES[coalitionState] || 1.12;
+            
+            // Psychological escalation multiplier
+            if (sadristState && sadristState.includes('P')) {
+                casualties *= 1.5;
+            }
+            
+            // Positional multiplier if not in base rates
+            if (!CASUALTY_RATES[coalitionState]) {
+                if (coalitionState.includes('Pos')) {
+                    casualties = 1.12 * 8.42;
+                } else {
+                    casualties = 1.12;
+                }
+            }
+            
+            return casualties;
+        }
+        
+        // ============================================================
+        // FUNCTIONS: Strategic Recommendation
+        // ============================================================
+        function getRecommendation() {
+            const sadristState = document.getElementById('sadrist-state-rec').value;
+            
+            // Evaluate all possible Coalition responses
+            const strategies = ['None', 'In', 'S', 'S+In', 'S+Pos', 'Id', 'S+Id', 'S+Id+In', 'Pos'];
+            const outcomes = [];
+            
+            for (const strategy of strategies) {
+                const casualties = predictCasualties(strategy, sadristState);
+                const riskLevel = casualties < 1 ? 'Low' : casualties < 5 ? 'Medium' : 'High';
+                outcomes.push({
+                    action: strategy,
+                    casualties: casualties,
+                    risk: riskLevel
+                });
+            }
+            
+            // Sort by casualties
+            outcomes.sort((a, b) => a.casualties - b.casualties);
+            
+            // Display results
+            const resultDiv = document.getElementById('rec-result');
+            const optimal = outcomes[0];
+            const worst = outcomes[outcomes.length - 1];
+            
+            let html = '<h3>Strategic Recommendation</h3>';
+            
+            // Optimal action
+            if (optimal.casualties < 1) {
+                html += `<div class="success">
+                    <strong>✓ Optimal Action: ${optimal.action}</strong><br>
+                    Expected casualties: ${optimal.casualties.toFixed(2)} per day<br>
+                    Risk Level: ${optimal.risk}<br>
+                    This is the best available option with minimal casualties.
+                </div>`;
+            } else {
+                html += `<div class="warning">
+                    <strong>⚠ Best Available: ${optimal.action}</strong><br>
+                    Expected casualties: ${optimal.casualties.toFixed(2)} per day<br>
+                    Risk Level: ${optimal.risk}<br>
+                    Note: No low-casualty options available given Sadrist state ${sadristState}
+                </div>`;
+            }
+            
+            // Comparison to worst
+            const savings = worst.casualties - optimal.casualties;
+            html += `<div class="result-item">
+                <span class="result-label">Potential Lives Saved:</span>
+                <span class="result-value">${savings.toFixed(1)} per day vs worst option (${worst.action})</span>
+            </div>`;
+            
+            // Top 3 options table
+            html += `<h4 style="margin-top: 20px;">Top 3 Recommended Strategies:</h4>
+            <table>
+                <tr>
+                    <th>Rank</th>
+                    <th>Strategy</th>
+                    <th>Daily Casualties</th>
+                    <th>30-Day Total</th>
+                    <th>Risk Level</th>
+                </tr>`;
+            
+            for (let i = 0; i < Math.min(3, outcomes.length); i++) {
+                const opt = outcomes[i];
+                html += `<tr>
+                    <td>#${i+1}</td>
+                    <td><strong>${opt.action}</strong></td>
+                    <td>${opt.casualties.toFixed(2)}</td>
+                    <td>${(opt.casualties * 30).toFixed(1)}</td>
+                    <td>${opt.risk}</td>
+                </tr>`;
+            }
+            
+            html += '</table>';
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
 
----
+      // ============================================================
+        // FUNCTIONS: Response Prediction
+        // ============================================================
+        function predictResponse() {
+            const coalitionCurrent = document.getElementById('coalition-current').value;
+            const coalitionPrev = document.getElementById('coalition-prev').value;
+            const day = parseInt(document.getElementById('day-conflict').value);
+            
+            // Simple rule-based prediction (simplified from ML model)
+            let predictedState = 'S+Id+Pos';  // Most common (70%)
+            let confidence = 0.70;
+            
+            // Adjust based on Coalition action
+            if (coalitionCurrent === 'None' || coalitionCurrent === 'In') {
+                // Coalition restraint might lead to Sadrist de-escalation
+                if (day > 60) {
+                    predictedState = 'S+Id+In';
+                    confidence = 0.55;
+                }
+            } else if (coalitionCurrent.includes('Pos')) {
+                // Coalition offensive keeps Sadrists in offensive posture
+                predictedState = 'S+Id+Pos';
+                confidence = 0.78;
+            }
+            
+            // Day of conflict influence
+            if (day > 70) {
+                // Late conflict more likely to see de-escalation
+                if (predictedState === 'S+Id+Pos') {
+                    confidence *= 0.9;
+                }
+            }
+            
+            // Display results
+            const resultDiv = document.getElementById('response-result');
+            const casualties = predictCasualties(coalitionCurrent, predictedState);
+            
+            let html = '<h3>Predicted Sadrist Response</h3>';
+            
+            html += `<div class="result-item">
+                <span class="result-label">Coalition Action:</span>
+                <span class="result-value">${coalitionCurrent}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Predicted Sadrist Response:</span>
+                <span class="result-value">${predictedState}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Prediction Confidence:</span>
+                <span class="result-value">${(confidence * 100).toFixed(1)}%</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Expected Casualties:</span>
+                <span class="result-value">${casualties.toFixed(2)} per day</span>
+            </div>`;
+            
+            // Risk assessment
+            if (casualties > 10) {
+                html += `<div class="danger">
+                    <strong>⚠ High Casualty Warning!</strong><br>
+                    This combination is predicted to result in ${casualties.toFixed(1)} casualties per day.
+                    Over 30 days, this could mean ${(casualties * 30).toFixed(0)} total casualties.
+                </div>`;
+            } else if (casualties < 1) {
+                html += `<div class="success">
+                    <strong>✓ Low Casualty Scenario</strong><br>
+                    This combination is expected to minimize casualties effectively.
+                </div>`;
+            }
+            
+            // Historical context
+            html += `<div class="info-box" style="margin-top: 20px;">
+                <strong>Historical Context:</strong> In the 2008 Sadr City conflict, Sadrists maintained 
+                S+Id+Pos (offensive posture) for 70% of the 92-day period. De-escalation to S+Id+In 
+                only occurred in the final 12 days after Coalition reduced pressure.
+            </div>`;
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+        
+        // ============================================================
+        // FUNCTIONS: Strategy Comparison
+        // ============================================================
+        function compareStrategies() {
+            const sadristState = document.getElementById('sadrist-state-comp').value;
+            const days = parseInt(document.getElementById('projection-days').value);
+            
+            const strategies = ['None', 'In', 'S', 'S+In', 'S+Pos'];
+            const results = [];
+            
+            for (const strategy of strategies) {
+                const dailyCasualties = predictCasualties(strategy, sadristState);
+                const totalCasualties = dailyCasualties * days;
+                
+                // Get transition probability
+                const transProb = COALITION_TRANSITIONS[strategy]?.[strategy] || 0;
+                
+                results.push({
+                    strategy: strategy,
+                    daily: dailyCasualties,
+                    total: totalCasualties,
+                    sustainability: transProb
+                });
+            }
+            
+            // Sort by total casualties
+            results.sort((a, b) => a.total - b.total);
+            
+            // Display results
+            const resultDiv = document.getElementById('comparison-result');
+            let html = '<h3>Strategy Comparison Results</h3>';
+            
+            html += `<div class="info-box">
+                <strong>Scenario:</strong> Sadrist state = ${sadristState} | Projection period = ${days} days
+            </div>`;
+            
+            html += `<table>
+                <tr>
+                    <th>Rank</th>
+                    <th>Strategy</th>
+                    <th>Daily Casualties</th>
+                    <th>${days}-Day Total</th>
+                    <th>Sustainability</th>
+                    <th>Assessment</th>
+                </tr>`;
+            
+            for (let i = 0; i < results.length; i++) {
+                const r = results[i];
+                const assessment = r.daily < 1 ? '✓ Optimal' : r.daily < 5 ? '⚠ Moderate' : '✗ High Risk';
+                const rowClass = r.daily < 1 ? 'style="background: #d4edda;"' : r.daily > 10 ? 'style="background: #f8d7da;"' : '';
+                
+                html += `<tr ${rowClass}>
+                    <td><strong>#${i+1}</strong></td>
+                    <td><strong>${r.strategy}</strong></td>
+                    <td>${r.daily.toFixed(2)}</td>
+                    <td>${r.total.toFixed(1)}</td>
+                    <td>${r.sustainability > 0 ? (r.sustainability * 100).toFixed(0) + '%' : 'N/A'}</td>
+                    <td>${assessment}</td>
+                </tr>`;
+            }
+            
+            html += '</table>';
+            
+            // Savings analysis
+            const best = results[0];
+            const worst = results[results.length - 1];
+            const savings = worst.total - best.total;
+            
+            html += `<div class="success" style="margin-top: 20px;">
+                <strong>Potential Impact:</strong><br>
+                By choosing ${best.strategy} instead of ${worst.strategy}, you could save approximately 
+                <strong>${savings.toFixed(0)} lives</strong> over ${days} days 
+                (${(savings / days).toFixed(1)} lives per day).
+            </div>`;
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
 
-## **🎯 5 Interactive Tools:**
+      // ============================================================
+        // FUNCTIONS: Monte Carlo Simulation
+        // ============================================================
+        function runSimulation() {
+            const coalitionState = document.getElementById('sim-coalition').value;
+            const sadristState = document.getElementById('sim-sadrist').value;
+            const days = parseInt(document.getElementById('sim-days').value);
+            const simulations = parseInt(document.getElementById('sim-runs').value);
+            
+            const results = [];
+            
+            // Run Monte Carlo simulations
+            for (let sim = 0; sim < simulations; sim++) {
+                let totalCasualties = 0;
+                let currentCoalition = coalitionState;
+                let currentSadrist = sadristState;
+                
+                for (let day = 0; day < days; day++) {
+                    // Calculate casualties for this day
+                    const meanCasualties = predictCasualties(currentCoalition, currentSadrist);
+                    const stdDev = meanCasualties * 0.3;
+                    
+                    // Sample from normal distribution
+                    const u1 = Math.random();
+                    const u2 = Math.random();
+                    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                    const dailyCasualties = Math.max(0, meanCasualties + z * stdDev);
+                    
+                    totalCasualties += dailyCasualties;
+                    
+                    // Transition to next states
+                    currentCoalition = sampleNextState(currentCoalition, COALITION_TRANSITIONS);
+                    currentSadrist = sampleNextState(currentSadrist, SADRIST_TRANSITIONS);
+                }
+                
+                results.push(totalCasualties);
+            }
+            
+            // Calculate statistics
+            results.sort((a, b) => a - b);
+            const mean = results.reduce((a, b) => a + b, 0) / simulations;
+            const median = results[Math.floor(simulations / 2)];
+            const p5 = results[Math.floor(simulations * 0.05)];
+            const p95 = results[Math.floor(simulations * 0.95)];
+            const min = Math.min(...results);
+            const max = Math.max(...results);
+            
+            // Display results
+            const resultDiv = document.getElementById('simulation-result');
+            let html = '<h3>Monte Carlo Simulation Results</h3>';
+            
+            html += `<div class="info-box">
+                <strong>Scenario:</strong> ${coalitionState} vs ${sadristState} | 
+                ${simulations.toLocaleString()} simulations × ${days} days
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Mean (Expected) Casualties:</span>
+                <span class="result-value">${mean.toFixed(1)}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Median Casualties:</span>
+                <span class="result-value">${median.toFixed(1)}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">90% Confidence Interval:</span>
+                <span class="result-value">[${p5.toFixed(0)}, ${p95.toFixed(0)}]</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Range:</span>
+                <span class="result-value">${min.toFixed(0)} to ${max.toFixed(0)}</span>
+            </div>`;
+            
+            // Risk assessment
+            if (mean > 100) {
+                html += `<div class="danger">
+                    <strong>⚠ High Risk Scenario</strong><br>
+                    Expected casualties of ${mean.toFixed(0)} over ${days} days 
+                    (${(mean/days).toFixed(1)} per day average). Consider alternative strategies.
+                </div>`;
+            } else if (mean < 30) {
+                html += `<div class="success">
+                    <strong>✓ Low Risk Scenario</strong><br>
+                    Expected casualties are manageable at ${mean.toFixed(0)} over ${days} days.
+                </div>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            
+            // Create histogram
+            createHistogram(results, days);
+            document.getElementById('chart-container').style.display = 'block';
+        }
+        
+        function sampleNextState(currentState, transitions) {
+            const transitionProbs = transitions[currentState];
+            if (!transitionProbs) return currentState;
+            
+            const states = Object.keys(transitionProbs);
+            const probs = Object.values(transitionProbs);
+            
+            // Weighted random selection
+            const rand = Math.random();
+            let cumProb = 0;
+            
+            for (let i = 0; i < states.length; i++) {
+                cumProb += probs[i];
+                if (rand < cumProb) {
+                    return states[i];
+                }
+            }
+            
+            return currentState;
+        }
 
-### **1. Strategic Recommendation**
-- Input: Observed Sadrist state
-- Output: Optimal Coalition action + top 3 alternatives
-- Shows casualties, risk level, and potential lives saved
-
-### **2. Response Prediction**
-- Input: Coalition action (current + previous), day of conflict
-- Output: Predicted Sadrist response with confidence level
-- Includes expected casualties and risk assessment
-
-### **3. Strategy Comparison**
-- Input: Sadrist state, projection period
-- Output: Comparison table of all strategies
-- Ranked by casualties with sustainability metrics
-
-### **4. Monte Carlo Simulation**
-- Input: Initial states, days, number of simulations
-- Output: Mean, median, 90% CI, min/max
-- Visual histogram of casualty distribution
-
-### **5. State Transitions**
-- Input: Actor (Coalition/Sadrist), current state
-- Output: Markov chain transition probabilities
-- Shows likelihood of each next state
-
----
-
-## **💾 How to Use:**
-
-### **Option 1: Open Locally**
-1. Download the `predictive_model_interactive.html` file
-2. Double-click to open in any web browser
-3. No installation required!
-
-### **Option 2: Deploy to Web**
-1. Upload to GitHub Pages (free hosting)
-2. Or upload to any web server
-3. Share the URL with your team
-
-### **Option 3: Embed in Presentation**
-- Include in PowerPoint as embedded webpage
-- Use for live demonstrations
-- Interactive decision support during briefings
-
----
-
-## **🎨 Key Features:**
-
-### **Color-Coded Results**
-- 🟢 **Green** = Low risk, optimal choices
-- 🟡 **Yellow** = Moderate risk, acceptable
-- 🔴 **Red** = High risk, avoid
-
-### **Smart Recommendations**
-- Automatically suggests best strategy
-- Shows potential lives saved
-- Compares current vs optimal
-
-### **Historical Context**
-- All predictions based on 2008 Sadr City data
-- 92 days of observations
-- Empirically validated transition probabilities
-
-### **Uncertainty Quantification**
-- 90% confidence intervals
-- Monte Carlo with 100-10,000 runs
-- Stochastic variation included
-
----
-
-## **📊 Built-In Data:**
-
-The HTML file includes:
-- ✅ 16 historical casualty rate combinations
-- ✅ Coalition transition matrix (13 states)
-- ✅ Sadrist transition matrix (9 states)
-- ✅ Psychological multipliers
-- ✅ Positional operation factors
-- ✅ All prediction algorithms
-
----
-
-## **🚀 Example Workflows:**
-
-### **Scenario 1: Quick Decision**
-1. Click "Strategic Recommendation" tab
-2. Select observed Sadrist state
-3. Click "Get Recommendation"
-4. See optimal action instantly
-
-### **Scenario 2: What-If Analysis**
-1. Click "Strategy Comparison" tab
-2. Select Sadrist state + time period
-3. Click "Compare All Strategies"
-4. Review ranked options table
-
-### **Scenario 3: Risk Assessment**
-1. Click "Monte Carlo Simulation" tab
-2. Set Coalition strategy + Sadrist state
-3. Choose simulation parameters
-4. Run simulation to see distribution
-
----
-
-## **✨ Advantages Over Python Version:**
-
-| Feature | Python | HTML |
-|---------|--------|------|
-| Installation | Requires Python + libraries | None - just open file |
-| Portability | Needs environment setup | Works anywhere |
-| Sharing | Send code + dependencies | Send single file |
-| UI | Command line | Interactive web interface |
-| Visualization | Matplotlib (static) | Chart.js (interactive) |
-| Accessibility | Technical users only | Anyone with browser |
-| Deployment | Server required | GitHub Pages (free) |
-
----
-
-## **📈 Technical Details:**
-
-- **Size**: ~35KB (single file)
-- **Dependencies**: Chart.js CDN (automatic)
-- **Browser Support**: All modern browsers
-- **Performance**: Runs 10,000 simulations in ~2 seconds
-- **Data Storage**: All embedded in JavaScript
-- **Security**: Client-side only, no data transmission
-
----
-
-## **🎓 Perfect For:**
-
-- ✅ Military briefings and presentations
-- ✅ Strategic planning sessions
-- ✅ Academic research demonstrations
-- ✅ Training and education
-- ✅ Policy analysis and recommendations
-- ✅ Real-time tactical decision support
-
----
-
-Download the file and open it in your browser - it's ready to use immediately! 🎉
+      function createHistogram(data, days) {
+            const canvas = document.getElementById('simulationChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear any existing chart
+            if (window.simChart) {
+                window.simChart.destroy();
+            }
+            
+            // Create histogram bins
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const bins = 30;
+            const binSize = (max - min) / bins;
+            
+            const histogram = new Array(bins).fill(0);
+            const labels = [];
+            
+            for (let i = 0; i < bins; i++) {
+                const binStart = min + i * binSize;
+                const binEnd = binStart + binSize;
+                labels.push(Math.round(binStart + binSize / 2));
+                
+                for (const value of data) {
+                    if (value >= binStart && value < binEnd) {
+                        histogram[i]++;
+                    }
+                }
+            }
+            
+            window.simChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: histogram,
+                        backgroundColor: 'rgba(30, 60, 114, 0.7)',
+                        borderColor: 'rgba(30, 60, 114, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Casualty Distribution (${days}-Day Projection)`,
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Total Casualties'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Frequency'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ============================================================
+        // FUNCTIONS: State Transitions
+        // ============================================================
+        function initTransitionTab() {
+            const actorSelect = document.getElementById('actor-select');
+            const stateSelect = document.getElementById('state-select');
+            
+            updateStateSelect();
+            showTransitions();
+        }
+        
+        function updateStateSelect() {
+            const actor = document.getElementById('actor-select').value;
+            const stateSelect = document.getElementById('state-select');
+            
+            stateSelect.innerHTML = '';
+            
+            const transitions = actor === 'Coalition' ? COALITION_TRANSITIONS : SADRIST_TRANSITIONS;
+            const states = Object.keys(transitions);
+            
+            for (const state of states) {
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = state;
+                stateSelect.appendChild(option);
+            }
+        }
+        
+        function showTransitions() {
+            const actor = document.getElementById('actor-select').value;
+            const state = document.getElementById('state-select').value;
+            
+            const transitions = actor === 'Coalition' ? COALITION_TRANSITIONS : SADRIST_TRANSITIONS;
+            const stateTransitions = transitions[state];
+            
+            if (!stateTransitions) {
+                document.getElementById('transition-result').style.display = 'none';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('transition-result');
+            let html = `<h3>${actor} State Transitions</h3>`;
+            
+            html += `<div class="info-box">
+                <strong>Current State:</strong> ${state}<br>
+                Based on historical data from 2008 Sadr City conflict
+            </div>`;
+            
+            // Sort by probability
+            const sorted = Object.entries(stateTransitions).sort((a, b) => b[1] - a[1]);
+            
+            html += '<table><tr><th>Next State</th><th>Probability</th><th>Interpretation</th></tr>';
+            
+            for (const [nextState, prob] of sorted) {
+                const interpretation = prob > 0.7 ? 'Very Likely' : 
+                                     prob > 0.5 ? 'Likely' :
+                                     prob > 0.3 ? 'Possible' : 'Unlikely';
+                const rowClass = nextState === state ? 'style="background: #fff3cd;"' : '';
+                
+                html += `<tr ${rowClass}>
+                    <td><strong>${nextState}</strong></td>
+                    <td>${(prob * 100).toFixed(1)}%</td>
+                    <td>${interpretation}</td>
+                </tr>`;
+            }
+            
+            html += '</table>';
+            
+            // Self-transition highlight
+            if (stateTransitions[state]) {
+                const selfProb = stateTransitions[state];
+                if (selfProb > 0.5) {
+                    html += `<div class="warning" style="margin-top: 20px;">
+                        <strong>High State Persistence:</strong> There is a ${(selfProb * 100).toFixed(0)}% 
+                        probability that ${actor} will remain in ${state} state tomorrow. 
+                        This indicates a stable strategic posture.
+                    </div>`;
+                }
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+        
+        // Initialize transition tab state select
+        document.getElementById('actor-select').addEventListener('change', updateStateSelect);
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateStateSelect();
+        });
+    </script>
+</body>
+</html>
