@@ -724,11 +724,11 @@ const TAG_META = {
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
-// plan[day][type] = recipe id or null
 let plan = {};
 let servings = 4;
-let groceryChecked = {}; // key → checked boolean
-let modalContext = null; // { day, type }
+let groceryChecked = {};
+let removedItems = new Set();
+let modalContext = null;
 let activeFilter = 'all';
 
 DAYS.forEach(d => {
@@ -739,9 +739,19 @@ DAYS.forEach(d => {
 // ── Initialization ─────────────────────────────────────────────────────────────
 function init() {
   renderDaysGrid();
-  renderGroceryList();
+  rebuildGroceryList();
   renderModalFilters();
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Event delegation for grocery checkboxes — avoids embedding keys in onclick attrs
+  document.getElementById('grocery-body').addEventListener('change', e => {
+    const cb = e.target.closest('input[type=checkbox]');
+    if (!cb || !cb.dataset.key) return;
+    const key = cb.dataset.key;
+    groceryChecked[key] = cb.checked;
+    const row = cb.closest('.grocery-item');
+    if (row) row.classList.toggle('checked', cb.checked);
+  });
 }
 
 // ── Days Grid ──────────────────────────────────────────────────────────────────
@@ -790,7 +800,7 @@ function removeSlot(e, day, type) {
 // ── Modal ──────────────────────────────────────────────────────────────────────
 function openModal(day, type) {
   modalContext = { day, type };
-  activeFilter = type; // default filter to the current meal type
+  activeFilter = type;
   document.getElementById('modal-title').textContent =
     `Choose ${type.charAt(0).toUpperCase()+type.slice(1)} for ${day}`;
   document.getElementById('recipe-search').value = '';
@@ -834,7 +844,7 @@ function setFilter(id) {
 
 function renderModalRecipes() {
   const q = document.getElementById('recipe-search').value.toLowerCase().trim();
-  let visible = RECIPES.filter(r => {
+  const visible = RECIPES.filter(r => {
     const matchSearch = !q || r.name.toLowerCase().includes(q);
     let matchFilter = true;
     if (activeFilter !== 'all') {
@@ -849,7 +859,7 @@ function renderModalRecipes() {
     const tags = r.tags.map(t => `<span class="rc-tag ${TAG_META[t].cls}">${TAG_META[t].label}</span>`).join('');
     const selected = ctx && plan[ctx.day][ctx.type] === r.id;
     return `
-      <div class="recipe-card ${selected?'selected':''}" onclick="pickRecipe('${r.id}')"
+      <div class="recipe-card" onclick="pickRecipe('${r.id}')"
            style="${selected?'border-color:var(--green);background:var(--green-light);':''}">
         <div class="rc-name">${r.name}</div>
         <div class="rc-meta">
@@ -873,14 +883,12 @@ function pickRecipe(rid) {
 function suggestWeek() {
   const byType = {};
   MEAL_TYPES.forEach(t => byType[t] = RECIPES.filter(r => r.type === t));
-
   DAYS.forEach(day => {
     MEAL_TYPES.forEach(type => {
       const pool = byType[type];
       plan[day][type] = pool[Math.floor(Math.random() * pool.length)].id;
     });
   });
-
   renderDaysGrid();
   rebuildGroceryList();
   showToast('Week planned! ✨');
@@ -889,8 +897,9 @@ function suggestWeek() {
 function clearAll() {
   DAYS.forEach(d => MEAL_TYPES.forEach(t => plan[d][t] = null));
   groceryChecked = {};
+  removedItems = new Set();
   renderDaysGrid();
-  renderGroceryList();
+  rebuildGroceryList();
   showToast('Cleared.');
 }
 
@@ -902,9 +911,8 @@ function updateServings(val) {
 }
 
 // ── Grocery List ──────────────────────────────────────────────────────────────
-function rebuildGroceryList() {
-  // Aggregate ingredients across all planned meals
-  const agg = {}; // key: "unit|name|category" → {name, unit, category, totalAmt}
+function aggregateIngredients() {
+  const agg = {};
   DAYS.forEach(day => {
     MEAL_TYPES.forEach(type => {
       const rid = plan[day][type];
@@ -912,21 +920,24 @@ function rebuildGroceryList() {
       const recipe = RECIPES.find(r => r.id === rid);
       if (!recipe) return;
       recipe.ingredients.forEach(([amt, unit, name, cat]) => {
-        const k = `${unit}|${name}|${cat}`;
-        if (!agg[k]) agg[k] = { name, unit, category: cat, total: 0 };
+        const k = unit + '|' + name + '|' + cat;
+        if (removedItems.has(k)) return;
+        if (!agg[k]) agg[k] = { name, unit, category: cat, total: 0, key: k };
         agg[k].total += amt * servings;
       });
     });
   });
+  return agg;
+}
 
-  // Group by category
+function rebuildGroceryList() {
+  const agg = aggregateIngredients();
   const categories = {};
-  Object.entries(agg).forEach(([k, item]) => {
+  Object.values(agg).forEach(item => {
     if (!categories[item.category]) categories[item.category] = [];
-    categories[item.category].push({ key: k, ...item });
+    categories[item.category].push(item);
   });
 
-  // Sort categories
   const sortedCats = Object.keys(categories).sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a);
     const bi = CATEGORY_ORDER.indexOf(b);
@@ -944,37 +955,29 @@ function rebuildGroceryList() {
 
   body.innerHTML = sortedCats.map(cat => {
     const items = categories[cat];
+    const rows = items.map(item => {
+      const checked = !!groceryChecked[item.key];
+      const amt = formatAmount(item.total, item.unit);
+      const cbId = 'cb-' + Math.random().toString(36).slice(2);
+      return `
+        <div class="grocery-item${checked?' checked':''}">
+          <input type="checkbox" id="${cbId}" data-key="${item.key}" ${checked?'checked':''} />
+          <label for="${cbId}">${item.name}</label>
+          <span class="grocery-amount">${amt}</span>
+        </div>`;
+    }).join('');
     return `
       <div class="grocery-section">
         <div class="grocery-section-header">${cat}</div>
-        ${items.map(item => {
-          const checked = !!groceryChecked[item.key];
-          const amt = formatAmount(item.total, item.unit);
-          return `
-            <div class="grocery-item ${checked?'checked':''}" id="gi-${CSS.escape(item.key)}">
-              <input type="checkbox" id="cb-${CSS.escape(item.key)}" ${checked?'checked':''} onchange="toggleCheck('${item.key.replace(/'/g,"\\'")}', this.checked)" />
-              <label for="cb-${CSS.escape(item.key)}">${item.name}</label>
-              <span class="grocery-amount">${amt}</span>
-            </div>`;
-        }).join('')}
+        ${rows}
       </div>`;
   }).join('');
-}
-
-function renderGroceryList() {
-  rebuildGroceryList();
 }
 
 function formatAmount(total, unit) {
   if (!unit) return `× ${Math.ceil(total)}`;
   const rounded = Math.round(total * 100) / 100;
   return `${rounded % 1 === 0 ? rounded : rounded.toFixed(1)} ${unit}`;
-}
-
-function toggleCheck(key, checked) {
-  groceryChecked[key] = checked;
-  const row = document.getElementById('gi-' + CSS.escape(key));
-  if (row) row.classList.toggle('checked', checked);
 }
 
 function uncheckAll() {
@@ -986,135 +989,12 @@ function uncheckAll() {
 function removeChecked() {
   const checkedKeys = Object.entries(groceryChecked).filter(([,v]) => v).map(([k]) => k);
   if (!checkedKeys.length) { showToast('Nothing checked.'); return; }
-  checkedKeys.forEach(k => delete groceryChecked[k]);
-  // Remove matching ingredients from the plan by zeroing out?
-  // Instead: just hide them by adding to an exclusion list stored separately
-  // Simpler: mark as manually removed so they stay out even after grocery rebuild
-  if (!window._removedItems) window._removedItems = new Set();
-  checkedKeys.forEach(k => window._removedItems.add(k));
-  rebuildGroceryListWithExclusions();
-  showToast(`Removed ${checkedKeys.length} item${checkedKeys.length>1?'s':''}.`);
-}
-
-function rebuildGroceryListWithExclusions() {
-  // Re-aggregate with exclusions
-  const agg = {};
-  DAYS.forEach(day => {
-    MEAL_TYPES.forEach(type => {
-      const rid = plan[day][type];
-      if (!rid) return;
-      const recipe = RECIPES.find(r => r.id === rid);
-      if (!recipe) return;
-      recipe.ingredients.forEach(([amt, unit, name, cat]) => {
-        const k = `${unit}|${name}|${cat}`;
-        if (window._removedItems && window._removedItems.has(k)) return;
-        if (!agg[k]) agg[k] = { name, unit, category: cat, total: 0 };
-        agg[k].total += amt * servings;
-      });
-    });
+  checkedKeys.forEach(k => {
+    removedItems.add(k);
+    delete groceryChecked[k];
   });
-
-  const categories = {};
-  Object.entries(agg).forEach(([k, item]) => {
-    if (!categories[item.category]) categories[item.category] = [];
-    categories[item.category].push({ key: k, ...item });
-  });
-
-  const sortedCats = Object.keys(categories).sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a);
-    const bi = CATEGORY_ORDER.indexOf(b);
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
-
-  const totalItems = Object.keys(agg).length;
-  document.getElementById('grocery-count').textContent = totalItems;
-
-  const body = document.getElementById('grocery-body');
-  if (totalItems === 0) {
-    body.innerHTML = `<div class="grocery-empty"><span class="icon">🛒</span>Add meals to generate your grocery list</div>`;
-    return;
-  }
-
-  body.innerHTML = sortedCats.map(cat => {
-    const items = categories[cat];
-    return `
-      <div class="grocery-section">
-        <div class="grocery-section-header">${cat}</div>
-        ${items.map(item => {
-          const checked = !!groceryChecked[item.key];
-          const amt = formatAmount(item.total, item.unit);
-          return `
-            <div class="grocery-item ${checked?'checked':''}" id="gi-${CSS.escape(item.key)}">
-              <input type="checkbox" id="cb-${CSS.escape(item.key)}" ${checked?'checked':''} onchange="toggleCheck('${item.key.replace(/'/g,"\\'")}', this.checked)" />
-              <label for="cb-${CSS.escape(item.key)}">${item.name}</label>
-              <span class="grocery-amount">${amt}</span>
-            </div>`;
-        }).join('')}
-      </div>`;
-  }).join('');
-}
-
-// Override rebuildGroceryList to respect exclusions
-const _originalRebuild = rebuildGroceryList;
-function rebuildGroceryList() {
-  if (window._removedItems && window._removedItems.size > 0) {
-    rebuildGroceryListWithExclusions();
-  } else {
-    // inline the original logic
-    const agg = {};
-    DAYS.forEach(day => {
-      MEAL_TYPES.forEach(type => {
-        const rid = plan[day][type];
-        if (!rid) return;
-        const recipe = RECIPES.find(r => r.id === rid);
-        if (!recipe) return;
-        recipe.ingredients.forEach(([amt, unit, name, cat]) => {
-          const k = `${unit}|${name}|${cat}`;
-          if (!agg[k]) agg[k] = { name, unit, category: cat, total: 0 };
-          agg[k].total += amt * servings;
-        });
-      });
-    });
-
-    const categories = {};
-    Object.entries(agg).forEach(([k, item]) => {
-      if (!categories[item.category]) categories[item.category] = [];
-      categories[item.category].push({ key: k, ...item });
-    });
-
-    const sortedCats = Object.keys(categories).sort((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a);
-      const bi = CATEGORY_ORDER.indexOf(b);
-      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-    });
-
-    const totalItems = Object.keys(agg).length;
-    document.getElementById('grocery-count').textContent = totalItems;
-
-    const body = document.getElementById('grocery-body');
-    if (totalItems === 0) {
-      body.innerHTML = `<div class="grocery-empty"><span class="icon">🛒</span>Add meals to generate your grocery list</div>`;
-      return;
-    }
-
-    body.innerHTML = sortedCats.map(cat => {
-      const items = categories[cat];
-      return `
-        <div class="grocery-section">
-          <div class="grocery-section-header">${cat}</div>
-          ${items.map(item => {
-            const checked = !!groceryChecked[item.key];
-            const amt = formatAmount(item.total, item.unit);
-            return `
-              <div class="grocery-item ${checked?'checked':''}" id="gi-${CSS.escape(item.key)}">
-                <input type="checkbox" id="cb-${CSS.escape(item.key)}" ${checked?'checked':''} onchange="toggleCheck('${item.key.replace(/'/g,"\\'")}', this.checked)" />
-                <label for="cb-${CSS.escape(item.key)}">${item.name}</label>
-                <span class="grocery-amount">${amt}</span>
-              </div>`;
-          }).join('')}
-        </div>`;
-    }).join('');
-  }
+  rebuildGroceryList();
+  showToast(`Removed ${checkedKeys.length} item${checkedKeys.length > 1 ? 's' : ''}.`);
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
